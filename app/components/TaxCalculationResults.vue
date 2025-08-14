@@ -92,84 +92,119 @@
               Resultado de la Declaración
             </h3>
             
-            <div v-if="results.taxPayable > 0" class="space-y-3">
-              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 mb-4">
-                <Icon name="i-heroicons-banknotes" class="text-3xl text-red-600" />
+            <div v-if="statusInfo" class="space-y-3">
+              <div 
+                class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4 transition-all duration-300 hover:scale-110"
+                :class="`bg-${statusInfo.color}-100 dark:bg-${statusInfo.color}-900/30`"
+              >
+                <Icon :name="statusInfo.icon" :class="`text-3xl text-${statusInfo.color}-600`" />
               </div>
               <p class="text-lg text-surface-600 dark:text-surface-400 mb-2">
-                IVA a Pagar
+                {{ statusInfo.title }}
               </p>
-              <p class="text-4xl font-bold text-red-600">
-                {{ formatCurrency(results.taxPayable) }}
+              <p :class="`text-4xl font-bold text-${statusInfo.color}-600 transition-all duration-300 hover:scale-105`">
+                {{ formatCurrency(statusInfo.amount) }}
               </p>
-            </div>
-
-            <div v-else class="space-y-3">
-              <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
-                <Icon name="i-heroicons-arrow-uturn-left" class="text-3xl text-green-600" />
-              </div>
-              <p class="text-lg text-surface-600 dark:text-surface-400 mb-2">
-                Crédito Fiscal
-              </p>
-              <p class="text-4xl font-bold text-green-600">
-                {{ formatCurrency(results.taxCredit) }}
-              </p>
-              <p class="text-sm text-surface-500 dark:text-surface-400">
-                No hay IVA por pagar este período
+              <p v-if="statusInfo.subtitle" class="text-sm text-surface-500 dark:text-surface-400">
+                {{ statusInfo.subtitle }}
               </p>
             </div>
           </div>
         </template>
       </Card>
 
-      <!-- Detailed Breakdown -->
-      <Card>
-        <template #header>
-          <div class="flex items-center space-x-2">
-            <Icon name="i-heroicons-calculator" class="text-xl" />
-            <span class="font-medium">Desglose del Cálculo</span>
-          </div>
-        </template>
-        <template #content>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-3">
-              <h4 class="font-medium text-surface-900 dark:text-surface-0 mb-3">Ventas</h4>
-              <div class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-surface-600 dark:text-surface-400">Subtotal:</span>
-                  <span class="font-medium">{{ formatCurrency(results.totalSales / 1.12) }}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-surface-600 dark:text-surface-400">IVA (12%):</span>
-                  <span class="font-medium">{{ formatCurrency(results.salesTax) }}</span>
-                </div>
-                <div class="flex justify-between border-t border-surface-200 dark:border-surface-700 pt-2">
-                  <span class="font-medium">Total:</span>
-                  <span class="font-bold">{{ formatCurrency(results.totalSales) }}</span>
+      <!-- Enhanced Detailed Breakdown -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tax Calculation Breakdown -->
+        <Card class="hover:shadow-lg transition-shadow duration-300">
+          <template #header>
+            <div class="flex items-center space-x-2">
+              <Icon name="i-heroicons-calculator" class="text-xl" />
+              <span class="font-medium">Desglose del Cálculo</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="space-y-6">
+              <!-- Sales Breakdown -->
+              <div class="space-y-3">
+                <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-3 flex items-center space-x-2">
+                  <Icon name="i-heroicons-arrow-trending-up" class="text-blue-600" />
+                  <span>Ventas</span>
+                </h4>
+                <div class="space-y-2 text-sm bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                  <div class="flex justify-between">
+                    <span class="text-surface-600 dark:text-surface-400">Subtotal (sin IVA):</span>
+                    <span class="font-medium">{{ formatCurrency(taxSummary?.netSales || 0) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-surface-600 dark:text-surface-400">IVA (12%):</span>
+                    <span class="font-medium text-blue-600">{{ formatCurrency(results.salesTax) }}</span>
+                  </div>
+                  <div class="flex justify-between border-t border-blue-200 dark:border-blue-800 pt-2">
+                    <span class="font-medium">Total:</span>
+                    <span class="font-bold text-blue-800 dark:text-blue-200">{{ formatCurrency(results.totalSales) }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="space-y-3">
-              <h4 class="font-medium text-surface-900 dark:text-surface-0 mb-3">Compras</h4>
-              <div class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-surface-600 dark:text-surface-400">Subtotal:</span>
-                  <span class="font-medium">{{ formatCurrency(results.totalPurchases / 1.12) }}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-surface-600 dark:text-surface-400">IVA (12%):</span>
-                  <span class="font-medium">{{ formatCurrency(results.purchasesTax) }}</span>
-                </div>
-                <div class="flex justify-between border-t border-surface-200 dark:border-surface-700 pt-2">
-                  <span class="font-medium">Total:</span>
-                  <span class="font-bold">{{ formatCurrency(results.totalPurchases) }}</span>
+              <!-- Purchases Breakdown -->
+              <div class="space-y-3">
+                <h4 class="font-medium text-green-800 dark:text-green-200 mb-3 flex items-center space-x-2">
+                  <Icon name="i-heroicons-arrow-trending-down" class="text-green-600" />
+                  <span>Compras</span>
+                </h4>
+                <div class="space-y-2 text-sm bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                  <div class="flex justify-between">
+                    <span class="text-surface-600 dark:text-surface-400">Subtotal (sin IVA):</span>
+                    <span class="font-medium">{{ formatCurrency(taxSummary?.netPurchases || 0) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-surface-600 dark:text-surface-400">IVA (12%):</span>
+                    <span class="font-medium text-green-600">{{ formatCurrency(results.purchasesTax) }}</span>
+                  </div>
+                  <div class="flex justify-between border-t border-green-200 dark:border-green-800 pt-2">
+                    <span class="font-medium">Total:</span>
+                    <span class="font-bold text-green-800 dark:text-green-200">{{ formatCurrency(results.totalPurchases) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </template>
-      </Card>
+          </template>
+        </Card>
+
+        <!-- Tax Analytics -->
+        <Card class="hover:shadow-lg transition-shadow duration-300">
+          <template #header>
+            <div class="flex items-center space-x-2">
+              <Icon name="i-heroicons-chart-bar" class="text-xl" />
+              <span class="font-medium">Análisis Fiscal</span>
+            </div>
+          </template>
+          <template #content>
+            <div class="space-y-4">
+              <div class="bg-surface-50 dark:bg-surface-800 p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-sm text-surface-600 dark:text-surface-400">Tasa efectiva de IVA:</span>
+                  <span class="font-bold text-orange-600">{{ taxSummary?.effectiveTaxRate.toFixed(2) }}%</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-sm text-surface-600 dark:text-surface-400">Utilización de crédito:</span>
+                  <span class="font-bold text-purple-600">{{ taxSummary?.creditUtilization.toFixed(1) }}%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-sm text-surface-600 dark:text-surface-400">Ratio ventas/compras:</span>
+                  <span class="font-bold text-blue-600">{{ (results.totalSales / results.totalPurchases).toFixed(2) }}</span>
+                </div>
+              </div>
+              
+              <div class="text-xs text-surface-500 dark:text-surface-400 space-y-1">
+                <p><strong>Nota:</strong> La tasa efectiva de IVA se calcula sobre el subtotal sin IVA.</p>
+                <p>La utilización de crédito muestra qué porcentaje del IVA de compras se puede usar como crédito fiscal.</p>
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
 
       <!-- Data Summary -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -224,19 +259,19 @@
         </Card>
       </div>
 
-      <!-- Actions -->
+      <!-- Enhanced Actions -->
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <Button 
-          label="Descargar Reporte"
+          label="Descargar Reporte JSON"
           icon="pi pi-download"
-          class="flex-1 sm:flex-none"
+          class="flex-1 sm:flex-none hover:scale-105 transition-transform duration-200"
           @click="$emit('download')"
         />
         <Button 
           label="Procesar Nuevos Archivos"
           icon="pi pi-refresh"
           severity="secondary"
-          class="flex-1 sm:flex-none"
+          class="flex-1 sm:flex-none hover:scale-105 transition-transform duration-200"
           @click="$emit('reset')"
         />
       </div>
@@ -283,6 +318,33 @@ const filteredPurchasesColumns = computed(() => {
   return Object.entries(props.results.detectedColumns.purchases).filter(([_, column]) => column)
 })
 
+// Enhanced computed properties for better visualization
+const taxSummary = computed(() => {
+  if (!props.results) return null
+  
+  return {
+    netSales: props.results.totalSales / 1.12,
+    netPurchases: props.results.totalPurchases / 1.12,
+    effectiveTaxRate: (props.results.salesTax / (props.results.totalSales / 1.12)) * 100,
+    creditUtilization: props.results.purchasesTax > 0 
+      ? (Math.min(props.results.purchasesTax, props.results.salesTax) / props.results.purchasesTax) * 100 
+      : 0
+  }
+})
+
+const statusInfo = computed(() => {
+  if (!props.results) return null
+  
+  const hasPayable = props.results.taxPayable > 0
+  return {
+    type: hasPayable ? 'payable' : 'credit',
+    icon: hasPayable ? 'i-heroicons-banknotes' : 'i-heroicons-arrow-uturn-left',
+    color: hasPayable ? 'red' : 'green',
+    title: hasPayable ? 'IVA a Pagar' : 'Crédito Fiscal',
+    amount: hasPayable ? props.results.taxPayable : props.results.taxCredit,
+    subtitle: hasPayable ? 'Debes pagar este monto a la SAT' : 'No hay IVA por pagar este período'
+  }
+})
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('es-GT', {

@@ -1,116 +1,84 @@
 <template>
-  <div class="max-w-4xl mx-auto p-6">
+  <div class="max-w-6xl mx-auto p-6">
+    <!-- Header -->
     <div class="text-center mb-8">
       <h1 class="text-3xl font-bold text-surface-900 dark:text-surface-0 mb-2">
         Calculadora de IVA
       </h1>
       <p class="text-surface-600 dark:text-surface-400">
-        Sube tus archivos Excel de ventas y compras para calcular el IVA automáticamente
+        Arrastra tus archivos Excel para calcular el IVA automáticamente
       </p>
     </div>
 
-    <Stepper 
-      v-model:value="currentStep" 
-      linear
-      class="w-full"
-    >
-      <StepList class="mb-8">
-        <Step value="1">
-          <div class="flex flex-col items-center gap-2 p-4 rounded-lg transition-all duration-200">
-            <Icon name="i-heroicons-document-arrow-up" class="text-2xl" />
-            <span class="font-medium">Archivo de Ventas</span>
-          </div>
-        </Step>
-        
-        <Step value="2">
-          <div class="flex flex-col items-center gap-2 p-4 rounded-lg transition-all duration-200">
-            <Icon name="i-heroicons-shopping-cart" class="text-2xl" />
-            <span class="font-medium">Archivo de Compras</span>
-          </div>
-        </Step>
-        
-        <Step value="3">
-          <div class="flex flex-col items-center gap-2 p-4 rounded-lg transition-all duration-200">
-            <Icon name="i-heroicons-calculator" class="text-2xl" />
-            <span class="font-medium">Resultados</span>
-          </div>
-        </Step>
-      </StepList>
+    <!-- Main Upload Area -->
+    <div v-if="!processor.state.value.results" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Sales Upload Zone -->
+      <FileDragZone
+        ref="salesDragZone"
+        title="Archivo de Ventas"
+        description="Arrastra aquí tu archivo Excel de ventas"
+        icon="i-heroicons-document-arrow-up"
+        color="blue"
+        :file="processor.state.value.salesFile"
+        :dragover="salesDragover"
+        file-description="Archivo de ventas listo"
+        @file-selected="handleSalesFileSelected"
+        @file-removed="handleSalesFileRemoved"
+        @dragover="salesDragover = true"
+        @dragleave="salesDragover = false"
+        @drop="handleSalesDrop"
+      />
 
-      <StepPanels>
-        <StepPanel value="1">
-          <SalesFileUpload
-            :file="processor.state.value.salesFile"
-            :is-processing="processor.state.value.isProcessing"
-            @file-selected="onSalesFileSelected"
-            @file-removed="onSalesFileRemoved"
-          />
-          
-          <div class="flex justify-end mt-6">
-            <Button 
-              :disabled="!processor.state.value.salesFile"
-              label="Siguiente"
-              icon="pi pi-arrow-right"
-              icon-pos="right"
-              @click="goToStep('2')"
-            />
-          </div>
-        </StepPanel>
+      <!-- Purchases Upload Zone -->
+      <FileDragZone
+        ref="purchasesDragZone"
+        title="Archivo de Compras"
+        description="Arrastra aquí tu archivo Excel de compras"
+        icon="i-heroicons-shopping-cart"
+        color="purple"
+        :file="processor.state.value.purchasesFile"
+        :dragover="purchasesDragover"
+        file-description="Archivo de compras listo"
+        @file-selected="handlePurchasesFileSelected"
+        @file-removed="handlePurchasesFileRemoved"
+        @dragover="purchasesDragover = true"
+        @dragleave="purchasesDragover = false"
+        @drop="handlePurchasesDrop"
+      />
+    </div>
 
-        <StepPanel value="2">
-          <PurchasesFileUpload
-            :file="processor.state.value.purchasesFile"
-            :is-processing="processor.state.value.isProcessing"
-            @file-selected="onPurchasesFileSelected"
-            @file-removed="onPurchasesFileRemoved"
-          />
-          
-          <div class="flex justify-between mt-6">
-            <Button 
-              label="Anterior"
-              icon="pi pi-arrow-left"
-              severity="secondary"
-              @click="goToStep('1')"
-            />
-            <Button 
-              :disabled="!processor.canProcess.value"
-              label="Procesar Archivos"
-              icon="pi pi-cog"
-              icon-pos="right"
-              :loading="processor.state.value.isProcessing"
-              @click="proceedToResults"
-            />
-          </div>
-        </StepPanel>
+    <!-- Process Button -->
+    <div v-if="!processor.state.value.results && (processor.state.value.salesFile || processor.state.value.purchasesFile)" class="text-center mb-8">
+      <Button 
+        :label="processor.state.value.isProcessing ? 'Procesando...' : 'Calcular IVA'"
+        :icon="processor.state.value.isProcessing ? 'pi pi-spin pi-spinner' : 'pi pi-calculator'"
+        size="large"
+        :disabled="!processor.canProcess.value"
+        :loading="processor.state.value.isProcessing"
+        class="px-8 py-3 text-lg"
+        @click="processFiles"
+      />
+      
+      <!-- Error Message -->
+      <div v-if="processor.state.value.error" class="mt-4">
+        <Message severity="error" @close="processor.clearError">
+          {{ processor.state.value.error }}
+        </Message>
+      </div>
+    </div>
 
-        <StepPanel value="3">
-          <TaxCalculationResults
-            :results="processor.state.value.results"
-            :is-processing="processor.state.value.isProcessing"
-            :error="processor.state.value.error"
-            @download="processor.downloadResults"
-            @reset="resetAndGoToStart"
-          />
-          
-          <div class="flex justify-between mt-6">
-            <Button 
-              label="Volver a Archivos"
-              icon="pi pi-arrow-left"
-              severity="secondary"
-              @click="goToStep('2')"
-            />
-            <Button 
-              label="Empezar de Nuevo"
-              icon="pi pi-refresh"
-              severity="secondary"
-              @click="resetAndGoToStart"
-            />
-          </div>
-        </StepPanel>
-      </StepPanels>
-    </Stepper>
+    <!-- Results -->
+    <div v-if="processor.state.value.results" class="space-y-6">
+      <TaxCalculationResults
+        :results="processor.state.value.results"
+        :is-processing="processor.state.value.isProcessing"
+        :error="processor.state.value.error"
+        @download="processor.downloadResults"
+        @reset="resetCalculator"
+      />
+    </div>
 
-    <!-- Error Toast -->
+    <!-- Toast for notifications -->
     <Toast />
   </div>
 </template>
@@ -120,63 +88,90 @@ import { useToast } from 'primevue/usetoast'
 
 const toast = useToast()
 const processor = useTaxFileProcessor()
-const currentStep = ref('1')
 
-const canNavigateToStep = (step: string) => {
-  switch (step) {
-    case '1':
-      return true
-    case '2':
-      return !!processor.state.value.salesFile
-    case '3':
-      return processor.canProcess.value || !!processor.state.value.results
-    default:
-      return false
-  }
-}
+// Drag states
+const salesDragover = ref(false)
+const purchasesDragover = ref(false)
 
-const goToStep = (step: string) => {
-  if (canNavigateToStep(step)) {
-    currentStep.value = step
-  }
-}
+// Component refs
+const salesDragZone = ref()
+const purchasesDragZone = ref()
 
-const onSalesFileSelected = (file: File) => {
+// File handlers
+const handleSalesFileSelected = (file: File) => {
   processor.setSalesFile(file)
+  checkAndAutoProcess()
 }
 
-const onSalesFileRemoved = () => {
+const handleSalesFileRemoved = () => {
   processor.setSalesFile(null)
 }
 
-const onPurchasesFileSelected = (file: File) => {
+const handlePurchasesFileSelected = (file: File) => {
   processor.setPurchasesFile(file)
+  checkAndAutoProcess()
 }
 
-const onPurchasesFileRemoved = () => {
+const handlePurchasesFileRemoved = () => {
   processor.setPurchasesFile(null)
 }
 
-const proceedToResults = async () => {
+// Drop handlers
+const handleSalesDrop = () => {
+  salesDragover.value = false
+}
+
+const handlePurchasesDrop = () => {
+  purchasesDragover.value = false
+}
+
+// Auto-process when both files are ready
+const checkAndAutoProcess = () => {
+  // Small delay to allow UI to update
+  nextTick(() => {
+    if (processor.canProcess.value && !processor.state.value.isProcessing) {
+      // Auto-process after 1 second
+      setTimeout(() => {
+        if (processor.canProcess.value && !processor.state.value.isProcessing) {
+          processFiles()
+        }
+      }, 1000)
+    }
+  })
+}
+
+const processFiles = async () => {
   const success = await processor.processFiles()
   if (success) {
-    currentStep.value = '3'
+    toast.add({
+      severity: 'success',
+      summary: 'Éxito',
+      detail: 'Archivos procesados correctamente',
+      life: 3000
+    })
   }
 }
 
-const resetAndGoToStart = () => {
+const resetCalculator = () => {
   processor.resetState()
-  currentStep.value = '1'
+  // Clear file inputs
+  salesDragZone.value?.clearInput()
+  purchasesDragZone.value?.clearInput()
 }
 
+// Watch for errors
 watch(() => processor.state.value.error, (error) => {
   if (error) {
     toast.add({
       severity: 'error',
-      summary: 'Error de Procesamiento',
+      summary: 'Error',
       detail: error,
       life: 5000
     })
   }
 })
 </script>
+
+<style scoped>
+/* Drag & drop styles */
+</style>

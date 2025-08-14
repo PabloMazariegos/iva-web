@@ -34,21 +34,16 @@ export const useTaxFileProcessor = () => {
 
   const setSalesFile = (file: File | null) => {
     state.value.salesFile = file
-    clearError()
+    state.value.error = null
   }
 
   const setPurchasesFile = (file: File | null) => {
     state.value.purchasesFile = file
-    clearError()
+    state.value.error = null
   }
 
   const clearError = () => {
     state.value.error = null
-  }
-
-  const clearResults = () => {
-    state.value.results = null
-    clearError()
   }
 
   const resetState = () => {
@@ -69,16 +64,19 @@ export const useTaxFileProcessor = () => {
 
   const processFiles = async (): Promise<boolean> => {
     if (!canProcess.value) {
-      state.value.error = 'Both sales and purchases files are required'
+      state.value.error = 'Se requieren ambos archivos de ventas y compras'
       return false
     }
 
     state.value.isProcessing = true
-    clearError()
-    clearResults()
+    state.value.error = null
+    state.value.results = null
 
     try {
-      const formData = createFormData()
+      const formData = new FormData()
+      formData.append('sales', state.value.salesFile!)
+      formData.append('purchases', state.value.purchasesFile!)
+
       const response = await $fetch<{ success: boolean; data: TaxCalculationResult }>('/api/process-excel', {
         method: 'POST',
         body: formData
@@ -88,49 +86,23 @@ export const useTaxFileProcessor = () => {
         state.value.results = response.data
         return true
       } else {
-        throw new Error('Processing failed')
+        throw new Error('Error al procesar los archivos')
       }
     } catch (error) {
-      handleProcessingError(error)
+      console.error('Processing error:', error)
+      
+      if (error && typeof error === 'object' && 'data' in error && 
+          error.data && typeof error.data === 'object' && 'statusMessage' in error.data) {
+        state.value.error = String(error.data.statusMessage)
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        state.value.error = String(error.message)
+      } else {
+        state.value.error = 'Ocurrió un error inesperado al procesar los archivos'
+      }
       return false
     } finally {
       state.value.isProcessing = false
     }
-  }
-
-  const createFormData = (): FormData => {
-    const formData = new FormData()
-    
-    if (state.value.salesFile) {
-      formData.append('sales', state.value.salesFile)
-    }
-    
-    if (state.value.purchasesFile) {
-      formData.append('purchases', state.value.purchasesFile)
-    }
-    
-    return formData
-  }
-
-  const handleProcessingError = (error: unknown) => {
-    console.error('Processing error:', error)
-    
-    if (error && typeof error === 'object' && 'data' in error && 
-        error.data && typeof error.data === 'object' && 'statusMessage' in error.data) {
-      state.value.error = String(error.data.statusMessage)
-    } else if (error && typeof error === 'object' && 'message' in error) {
-      state.value.error = String(error.message)
-    } else {
-      state.value.error = 'An unexpected error occurred while processing files'
-    }
-  }
-
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('es-GT', {
-      style: 'currency',
-      currency: 'GTQ',
-      minimumFractionDigits: 2
-    }).format(amount)
   }
 
   const downloadResults = () => {
@@ -158,29 +130,29 @@ export const useTaxFileProcessor = () => {
     const url = URL.createObjectURL(dataBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `tax-report-${new Date().toISOString().slice(0, 10)}.json`
+    link.download = `reporte-iva-${new Date().toISOString().slice(0, 10)}.json`
     link.click()
     
     URL.revokeObjectURL(url)
   }
 
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('es-GT', {
+      style: 'currency',
+      currency: 'GTQ',
+      minimumFractionDigits: 2
+    }).format(amount)
+  }
+
   return {
-    // State
     state: readonly(state),
-    
-    // Computed
     canProcess,
-    
-    // Actions
     setSalesFile,
     setPurchasesFile,
     processFiles,
     clearError,
-    clearResults,
     resetState,
     downloadResults,
-    
-    // Utilities
     formatCurrency
   }
 }
