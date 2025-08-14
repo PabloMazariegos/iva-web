@@ -132,8 +132,9 @@ export class ExcelProcessingService {
       taxpayerNumber: /nit|ruc|identificacion|taxpayer/i,
       taxpayerName: /nombre|razon|client|proveedor|empresa|name|company/i,
       total: /total|monto|importe|valor|amount/i,
-      tax: /iva|impuesto|tax/i,
-      invoiceNumber: /serie|correlativo|numero|factura|invoice/i
+      tax: /iva\s*\(monto\s*de\s*este\s*impuesto\)|iva|impuesto|tax/i,
+      invoiceNumber: /serie|correlativo|numero|factura|invoice/i,
+      currency: /moneda|currency|curr|divisa/i
     }
 
     const detected: { [key: string]: string | null } = {}

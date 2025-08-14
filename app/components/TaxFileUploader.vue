@@ -10,6 +10,52 @@
       </p>
     </div>
 
+    <!-- Exchange Rate Configuration -->
+    <div v-if="!processor.state.value.results" class="bg-surface-50 dark:bg-surface-800 rounded-xl p-6 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-2">
+          <Icon name="i-heroicons-currency-dollar" class="text-xl text-green-600" />
+          <h3 class="text-lg font-semibold text-surface-900 dark:text-surface-0">
+            Configuración de Moneda
+          </h3>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-2">
+          <label for="exchangeRate" class="block text-sm font-medium text-surface-700 dark:text-surface-300">
+            Tasa de Cambio (USD a GTQ)
+          </label>
+          <InputNumber
+            id="exchangeRate"
+            v-model="exchangeRate"
+            mode="decimal"
+            :min="1"
+            :max="15"
+            :min-fraction-digits="2"
+            :max-fraction-digits="4"
+            placeholder="7.7500"
+            class="w-full"
+            :class="{ 'p-invalid': exchangeRateError }"
+          />
+          <small v-if="exchangeRateError" class="text-red-500">{{ exchangeRateError }}</small>
+          <small v-else class="text-surface-500 dark:text-surface-400">
+            Conversión: $1 USD = Q{{ exchangeRate?.toFixed(4) || '0.0000' }}
+          </small>
+        </div>
+        <div class="flex items-center space-x-4 bg-surface-100 dark:bg-surface-700 rounded-lg p-4">
+          <div class="text-center">
+            <div class="text-2xl font-bold text-blue-600">USD</div>
+            <div class="text-xs text-surface-600 dark:text-surface-400">Dólares</div>
+          </div>
+          <Icon name="i-heroicons-arrow-right" class="text-surface-400" />
+          <div class="text-center">
+            <div class="text-2xl font-bold text-green-600">GTQ</div>
+            <div class="text-xs text-surface-600 dark:text-surface-400">Quetzales</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Upload Area -->
     <div v-if="!processor.state.value.results" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
       <!-- Sales Upload Zone -->
@@ -93,6 +139,24 @@ const processor = useTaxFileProcessor()
 const salesDragover = ref(false)
 const purchasesDragover = ref(false)
 
+// Exchange rate management
+const exchangeRate = ref(7.75) // Default USD to GTQ rate
+const exchangeRateError = ref('')
+
+// Validate exchange rate
+const validateExchangeRate = () => {
+  if (!exchangeRate.value || exchangeRate.value <= 0) {
+    exchangeRateError.value = 'La tasa de cambio debe ser mayor a 0'
+    return false
+  }
+  if (exchangeRate.value < 1 || exchangeRate.value > 15) {
+    exchangeRateError.value = 'La tasa de cambio debe estar entre 1 y 15'
+    return false
+  }
+  exchangeRateError.value = ''
+  return true
+}
+
 // Component refs
 const salesDragZone = ref()
 const purchasesDragZone = ref()
@@ -100,7 +164,6 @@ const purchasesDragZone = ref()
 // File handlers
 const handleSalesFileSelected = (file: File) => {
   processor.setSalesFile(file)
-  checkAndAutoProcess()
 }
 
 const handleSalesFileRemoved = () => {
@@ -109,7 +172,6 @@ const handleSalesFileRemoved = () => {
 
 const handlePurchasesFileSelected = (file: File) => {
   processor.setPurchasesFile(file)
-  checkAndAutoProcess()
 }
 
 const handlePurchasesFileRemoved = () => {
@@ -125,23 +187,18 @@ const handlePurchasesDrop = () => {
   purchasesDragover.value = false
 }
 
-// Auto-process when both files are ready
-const checkAndAutoProcess = () => {
-  // Small delay to allow UI to update
-  nextTick(() => {
-    if (processor.canProcess.value && !processor.state.value.isProcessing) {
-      // Auto-process after 1 second
-      setTimeout(() => {
-        if (processor.canProcess.value && !processor.state.value.isProcessing) {
-          processFiles()
-        }
-      }, 1000)
-    }
-  })
-}
-
 const processFiles = async () => {
-  const success = await processor.processFiles()
+  if (!validateExchangeRate()) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: 'Por favor corrige la tasa de cambio antes de continuar',
+      life: 5000
+    })
+    return
+  }
+
+  const success = await processor.processFiles(exchangeRate.value)
   if (success) {
     toast.add({
       severity: 'success',

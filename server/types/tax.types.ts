@@ -9,11 +9,33 @@ export interface TaxCalculationResult {
   purchasesTax: number
   taxPayable: number
   taxCredit: number
-  salesData: ExcelRow[]
-  purchasesData: ExcelRow[]
+  salesData: readonly ExcelRow[]
+  purchasesData: readonly ExcelRow[]
   detectedColumns: {
     sales: ColumnMapping
     purchases: ColumnMapping
+  }
+  exchangeRate: number
+  baseCurrency: 'GTQ'
+  currencyBreakdown: {
+    sales: {
+      usd: { count: number; total: number; originalTotal: number }
+      gtq: { count: number; total: number }
+    }
+    purchases: {
+      usd: { count: number; total: number; originalTotal: number }
+      gtq: { count: number; total: number }
+    }
+  }
+  taxBreakdown: {
+    sales: {
+      usd: { count: number; total: number; originalTotal: number }
+      gtq: { count: number; total: number }
+    }
+    purchases: {
+      usd: { count: number; total: number; originalTotal: number }
+      gtq: { count: number; total: number }
+    }
   }
 }
 
@@ -24,6 +46,7 @@ export interface ColumnMapping {
   total?: string | null
   tax?: string | null
   invoiceNumber?: string | null
+  currency?: string | null
 }
 
 export interface FileValidationResult {

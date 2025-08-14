@@ -6,9 +6,10 @@ import type { EventHandlerRequest, H3Event } from 'h3'
 
 export default defineEventHandler(async (event) => {
   try {
-    const { salesFile, purchasesFile } = await extractFilesFromRequest(event)
+    const { salesFile, purchasesFile, exchangeRate } = await extractFilesFromRequest(event)
     
     validateFiles(salesFile, purchasesFile)
+    validateExchangeRate(exchangeRate)
     
     const excelProcessor = new ExcelProcessingService()
     
@@ -25,7 +26,8 @@ export default defineEventHandler(async (event) => {
       {
         sales: salesProcessed.detectedColumns,
         purchases: purchasesProcessed.detectedColumns
-      }
+      },
+      exchangeRate
     )
 
     return {
@@ -38,7 +40,7 @@ export default defineEventHandler(async (event) => {
   }
 })
 
-async function extractFilesFromRequest(event: H3Event<EventHandlerRequest>): Promise<{ salesFile: File; purchasesFile: File }> {
+async function extractFilesFromRequest(event: H3Event<EventHandlerRequest>): Promise<{ salesFile: File; purchasesFile: File; exchangeRate: number }> {
   const formData = await readMultipartFormData(event)
   
   if (!formData?.length) {
@@ -50,12 +52,19 @@ async function extractFilesFromRequest(event: H3Event<EventHandlerRequest>): Pro
 
   let salesFile: File | null = null
   let purchasesFile: File | null = null
+  let exchangeRate = 7.75 // Default rate
 
   for (const item of formData) {
     if (item.name === 'sales' && item.data) {
       salesFile = new File([new Uint8Array(item.data)], item.filename || 'sales.xlsx')
     } else if (item.name === 'purchases' && item.data) {
       purchasesFile = new File([new Uint8Array(item.data)], item.filename || 'purchases.xlsx')
+    } else if (item.name === 'exchangeRate' && item.data) {
+      const rateStr = new TextDecoder().decode(item.data)
+      const parsedRate = parseFloat(rateStr)
+      if (!isNaN(parsedRate)) {
+        exchangeRate = parsedRate
+      }
     }
   }
 
@@ -66,7 +75,7 @@ async function extractFilesFromRequest(event: H3Event<EventHandlerRequest>): Pro
     })
   }
 
-  return { salesFile, purchasesFile }
+  return { salesFile, purchasesFile, exchangeRate }
 }
 
 function validateFiles(salesFile: File, purchasesFile: File): void {
@@ -83,6 +92,22 @@ function validateFiles(salesFile: File, purchasesFile: File): void {
     throw createError({
       statusCode: 400,
       statusMessage: `Purchases file: ${purchasesValidation.errorMessage}`
+    })
+  }
+}
+
+function validateExchangeRate(exchangeRate: number): void {
+  if (!exchangeRate || exchangeRate <= 0) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Exchange rate must be greater than 0'
+    })
+  }
+  
+  if (exchangeRate < 1 || exchangeRate > 15) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Exchange rate must be between 1 and 15'
     })
   }
 }

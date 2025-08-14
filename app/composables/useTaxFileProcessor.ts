@@ -1,19 +1,4 @@
-import type { ExcelRow, ColumnMapping } from "~~/server/types/tax.types"
-
-export interface TaxCalculationResult {
-  totalSales: number
-  totalPurchases: number
-  salesTax: number
-  purchasesTax: number
-  taxPayable: number
-  taxCredit: number
-  salesData: readonly ExcelRow[]
-  purchasesData: readonly ExcelRow[]
-  detectedColumns: {
-    sales: ColumnMapping
-    purchases: ColumnMapping
-  }
-}
+import type { TaxCalculationResult } from "~~/server/types/tax.types"
 
 export interface FileUploadState {
   salesFile: File | null
@@ -62,9 +47,14 @@ export const useTaxFileProcessor = () => {
            !state.value.isProcessing
   })
 
-  const processFiles = async (): Promise<boolean> => {
+  const processFiles = async (exchangeRate?: number): Promise<boolean> => {
     if (!canProcess.value) {
       state.value.error = 'Se requieren ambos archivos de ventas y compras'
+      return false
+    }
+
+    if (exchangeRate && (exchangeRate <= 0 || exchangeRate < 1 || exchangeRate > 15)) {
+      state.value.error = 'La tasa de cambio debe estar entre 1 y 15'
       return false
     }
 
@@ -76,6 +66,9 @@ export const useTaxFileProcessor = () => {
       const formData = new FormData()
       formData.append('sales', state.value.salesFile!)
       formData.append('purchases', state.value.purchasesFile!)
+      if (exchangeRate) {
+        formData.append('exchangeRate', exchangeRate.toString())
+      }
 
       const response = await $fetch<{ success: boolean; data: TaxCalculationResult }>('/api/process-excel', {
         method: 'POST',

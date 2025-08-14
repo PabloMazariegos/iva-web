@@ -33,6 +33,27 @@
 
     <!-- Results -->
     <div v-else-if="results" class="space-y-6">
+      <!-- Exchange Rate Info -->
+      <Card class="mb-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800">
+        <template #content>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <Icon name="i-heroicons-currency-dollar" class="text-2xl text-green-600" />
+              <div>
+                <p class="text-sm text-green-600 dark:text-green-400 font-medium">Tasa de Cambio Utilizada</p>
+                <p class="text-xl font-bold text-green-800 dark:text-green-200">
+                  $1 USD = Q{{ results.exchangeRate.toFixed(4) }}
+                </p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-xs text-surface-500 dark:text-surface-400">Moneda Base</p>
+              <p class="text-lg font-bold text-surface-800 dark:text-surface-200">{{ results.baseCurrency }}</p>
+            </div>
+          </div>
+        </template>
+      </Card>
+
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -74,7 +95,7 @@
         <Card class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
           <template #content>
             <div class="text-center">
-              <Icon name="i-heroicons-receipt-tax" class="text-3xl text-purple-600 mb-2" />
+              <Icon name="tabler:receipt-tax" class="text-3xl text-purple-600 mb-2" />
               <p class="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">IVA Compras</p>
               <p class="text-xl font-bold text-purple-800 dark:text-purple-200">
                 {{ formatCurrency(results.purchasesTax) }}
@@ -197,9 +218,88 @@
                 </div>
               </div>
               
+              <!-- Currency Breakdown -->
+              <div class="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 p-4 rounded-lg">
+                <h5 class="text-sm font-medium text-surface-700 dark:text-surface-300 mb-3">
+                  Desglose por Moneda - Totales
+                </h5>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <p class="text-surface-600 dark:text-surface-400 mb-2">
+                      <strong>Ventas:</strong>
+                    </p>
+                    <div class="space-y-1">
+                      <div class="flex justify-between">
+                        <span>USD ({{ results.currencyBreakdown.sales.usd.count }}):</span>
+                        <span class="font-medium">${{ (results.currencyBreakdown.sales.usd.originalTotal).toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span>GTQ ({{ results.currencyBreakdown.sales.gtq.count }}):</span>
+                        <span class="font-medium">Q{{ results.currencyBreakdown.sales.gtq.total.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-surface-600 dark:text-surface-400 mb-2">
+                      <strong>Compras:</strong>
+                    </p>
+                    <div class="space-y-1">
+                      <div class="flex justify-between">
+                        <span>USD ({{ results.currencyBreakdown.purchases.usd.count }}):</span>
+                        <span class="font-medium">${{ (results.currencyBreakdown.purchases.usd.originalTotal).toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span>GTQ ({{ results.currencyBreakdown.purchases.gtq.count }}):</span>
+                        <span class="font-medium">Q{{ results.currencyBreakdown.purchases.gtq.total.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- IVA Tax Breakdown -->
+              <div v-if="results.taxBreakdown" class="bg-gradient-to-r from-orange-50 to-purple-50 dark:from-orange-900/20 dark:to-purple-900/20 p-4 rounded-lg">
+                <h5 class="text-sm font-medium text-surface-700 dark:text-surface-300 mb-3">
+                  Desglose por Moneda - IVA
+                </h5>
+                <div class="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <p class="text-surface-600 dark:text-surface-400 mb-2">
+                      <strong>IVA Ventas:</strong>
+                    </p>
+                    <div class="space-y-1">
+                      <div class="flex justify-between">
+                        <span>USD ({{ results.taxBreakdown.sales.usd.count }}):</span>
+                        <span class="font-medium text-orange-600">${{ (results.taxBreakdown.sales.usd.originalTotal).toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span>GTQ ({{ results.taxBreakdown.sales.gtq.count }}):</span>
+                        <span class="font-medium text-orange-600">Q{{ results.taxBreakdown.sales.gtq.total.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p class="text-surface-600 dark:text-surface-400 mb-2">
+                      <strong>IVA Compras:</strong>
+                    </p>
+                    <div class="space-y-1">
+                      <div class="flex justify-between">
+                        <span>USD ({{ results.taxBreakdown.purchases.usd.count }}):</span>
+                        <span class="font-medium text-purple-600">${{ (results.taxBreakdown.purchases.usd.originalTotal).toFixed(2) }}</span>
+                      </div>
+                      <div class="flex justify-between">
+                        <span>GTQ ({{ results.taxBreakdown.purchases.gtq.count }}):</span>
+                        <span class="font-medium text-purple-600">Q{{ results.taxBreakdown.purchases.gtq.total.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div class="text-xs text-surface-500 dark:text-surface-400 space-y-1">
-                <p><strong>Nota:</strong> La tasa efectiva de IVA se calcula sobre el subtotal sin IVA.</p>
+                <p><strong>Nota:</strong> Los montos de IVA se obtienen directamente de la columna "IVA (monto de este impuesto)" de los archivos.</p>
                 <p>La utilización de crédito muestra qué porcentaje del IVA de compras se puede usar como crédito fiscal.</p>
+                <p>Los montos USD han sido convertidos a GTQ usando la tasa de cambio configurada.</p>
               </div>
             </div>
           </template>
@@ -224,8 +324,9 @@
               <div class="text-xs text-surface-500 dark:text-surface-400">
                 Columnas detectadas:
                 <ul class="list-disc list-inside mt-1 space-y-1">
-                  <li v-for="[key, column] in filteredSalesColumns" :key="key">
+                  <li v-for="[key, column] in filteredSalesColumns" :key="key" :class="{ 'text-green-600 font-medium': key === 'currency' }">
                     {{ key }}: {{ column }}
+                    <span v-if="key === 'currency'" class="text-green-500 ml-1">✓</span>
                   </li>
                 </ul>
               </div>
@@ -249,8 +350,9 @@
               <div class="text-xs text-surface-500 dark:text-surface-400">
                 Columnas detectadas:
                 <ul class="list-disc list-inside mt-1 space-y-1">
-                  <li v-for="[key, column] in filteredPurchasesColumns" :key="key">
+                  <li v-for="[key, column] in filteredPurchasesColumns" :key="key" :class="{ 'text-green-600 font-medium': key === 'currency' }">
                     {{ key }}: {{ column }}
+                    <span v-if="key === 'currency'" class="text-green-500 ml-1">✓</span>
                   </li>
                 </ul>
               </div>
@@ -291,7 +393,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TaxCalculationResult } from '~/composables/useTaxFileProcessor'
+import type { TaxCalculationResult } from '~~/server/types/tax.types'
 
 interface Props {
   results: TaxCalculationResult | null
