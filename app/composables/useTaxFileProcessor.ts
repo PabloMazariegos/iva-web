@@ -1,4 +1,4 @@
-import type { ExcelRow, ColumnMapping } from '../server/types/tax.types'
+import type { ExcelRow, ColumnMapping } from "~~/server/types/tax.types"
 
 export interface TaxCalculationResult {
   totalSales: number
