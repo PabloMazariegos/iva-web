@@ -8,7 +8,16 @@ export default defineNuxtConfig({
   vite: {
     plugins: [
       tailwindcss()
-    ]
+    ],
+    optimizeDeps: {
+      include: ['xlsx']
+    }
+  },
+  build: {
+    transpile: ['xlsx']
+  },
+  experimental: {
+    clientNodeCompat: true
   },
   modules: [
     '@primevue/nuxt-module',
