@@ -2,7 +2,49 @@ export interface ExcelRow {
   [key: string]: string | number | Date
 }
 
+// Document types from Guatemala tax system
+export type DocumentType = 'FACT' | 'NDEB' | 'NCRE' | 'OTHER'
+
+export interface DocumentTypeBreakdown {
+  regular: { count: number; totalAmount: number; totalTax: number }
+  debitNotes: { count: number; totalAmount: number; totalTax: number } // NDEB
+  creditNotes: { count: number; totalAmount: number; totalTax: number } // NCRE
+}
+
+export interface CurrencyBreakdown {
+  usd: { count: number; total: number; originalTotal: number }
+  gtq: { count: number; total: number }
+}
+
+export interface DetailedTaxSummary {
+  invoiceCount: number
+  totalAmount: number
+  totalTax: number
+  currencyBreakdown: CurrencyBreakdown
+  documentBreakdown: DocumentTypeBreakdown
+}
+
+export interface OptimizedInvoice {
+  invoiceNumber: string
+  taxpayerName: string
+  totalAmount: number
+  taxAmount: number
+  currency: string
+  documentType: DocumentType
+  originalRow: ExcelRow
+}
+
+export interface InvoiceOptimizationResult {
+  targetTaxAmount: number
+  achievedTaxAmount: number
+  coveragePercentage: number
+  selectedInvoices: OptimizedInvoice[]
+  totalSelectedInvoices: number
+  remainingTaxGap: number
+}
+
 export interface TaxCalculationResult {
+  // Legacy fields for backward compatibility
   totalSales: number
   totalPurchases: number
   salesTax: number
@@ -17,25 +59,20 @@ export interface TaxCalculationResult {
   }
   exchangeRate: number
   baseCurrency: 'GTQ'
+  
+  // New detailed analysis
+  salesSummary: DetailedTaxSummary
+  purchasesSummary: DetailedTaxSummary
+  invoiceOptimization: InvoiceOptimizationResult
+  
+  // Legacy breakdowns (keeping for compatibility)
   currencyBreakdown: {
-    sales: {
-      usd: { count: number; total: number; originalTotal: number }
-      gtq: { count: number; total: number }
-    }
-    purchases: {
-      usd: { count: number; total: number; originalTotal: number }
-      gtq: { count: number; total: number }
-    }
+    sales: CurrencyBreakdown
+    purchases: CurrencyBreakdown
   }
   taxBreakdown: {
-    sales: {
-      usd: { count: number; total: number; originalTotal: number }
-      gtq: { count: number; total: number }
-    }
-    purchases: {
-      usd: { count: number; total: number; originalTotal: number }
-      gtq: { count: number; total: number }
-    }
+    sales: CurrencyBreakdown
+    purchases: CurrencyBreakdown
   }
 }
 

@@ -1,4 +1,6 @@
 import type { ExcelRow, TaxCalculationResult, ColumnMapping } from '../types/tax.types'
+import { DocumentClassificationService } from './DocumentClassificationService'
+import { InvoiceOptimizationService } from './InvoiceOptimizationService'
 
 const sumColumnValues = (
   data: ExcelRow[], 
@@ -67,13 +69,13 @@ export const TaxCalculationService = {
     },
     exchangeRate: number = 7.75
   ): TaxCalculationResult {
-    const salesSummary = sumColumnValues(
+    const salesAmountSummary = sumColumnValues(
       salesData, 
       columnMappings.sales.total,
       columnMappings.sales.currency,
       exchangeRate
     )
-    const purchasesSummary = sumColumnValues(
+    const purchasesAmountSummary = sumColumnValues(
       purchasesData, 
       columnMappings.purchases.total,
       columnMappings.purchases.currency,
@@ -94,14 +96,34 @@ export const TaxCalculationService = {
       exchangeRate
     )
     
-    const totalSales = salesSummary.total
-    const totalPurchases = purchasesSummary.total
+    const totalSales = salesAmountSummary.total
+    const totalPurchases = purchasesAmountSummary.total
     
     const salesTax = salesTaxSummary.total
     const purchasesTax = purchasesTaxSummary.total
     
     const taxPayable = calculateTaxPayable(salesTax, purchasesTax)
     const taxCredit = calculateTaxCredit(salesTax, purchasesTax)
+
+    // Generate detailed analysis using new services
+    const salesSummary = DocumentClassificationService.createDetailedTaxSummary(
+      salesData,
+      columnMappings.sales,
+      exchangeRate
+    )
+
+    const purchasesSummary = DocumentClassificationService.createDetailedTaxSummary(
+      purchasesData,
+      columnMappings.purchases,
+      exchangeRate
+    )
+
+    const invoiceOptimization = InvoiceOptimizationService.optimizeInvoiceSelection(
+      purchasesData,
+      salesTax,
+      columnMappings.purchases,
+      exchangeRate
+    )
 
     return {
       totalSales,
@@ -115,27 +137,32 @@ export const TaxCalculationService = {
       detectedColumns: columnMappings,
       exchangeRate,
       baseCurrency: 'GTQ' as const,
+      
+      // New detailed analysis
+      salesSummary,
+      purchasesSummary,
+      invoiceOptimization,
       currencyBreakdown: {
         sales: {
           usd: { 
-            count: salesSummary.usdCount, 
-            total: salesSummary.originalUsdTotal * exchangeRate, 
-            originalTotal: salesSummary.originalUsdTotal 
+            count: salesAmountSummary.usdCount, 
+            total: salesAmountSummary.originalUsdTotal * exchangeRate, 
+            originalTotal: salesAmountSummary.originalUsdTotal 
           },
           gtq: { 
-            count: salesSummary.gtqCount, 
-            total: totalSales - (salesSummary.originalUsdTotal * exchangeRate) 
+            count: salesAmountSummary.gtqCount, 
+            total: totalSales - (salesAmountSummary.originalUsdTotal * exchangeRate) 
           }
         },
         purchases: {
           usd: { 
-            count: purchasesSummary.usdCount, 
-            total: purchasesSummary.originalUsdTotal * exchangeRate, 
-            originalTotal: purchasesSummary.originalUsdTotal 
+            count: purchasesAmountSummary.usdCount, 
+            total: purchasesAmountSummary.originalUsdTotal * exchangeRate, 
+            originalTotal: purchasesAmountSummary.originalUsdTotal 
           },
           gtq: { 
-            count: purchasesSummary.gtqCount, 
-            total: totalPurchases - (purchasesSummary.originalUsdTotal * exchangeRate) 
+            count: purchasesAmountSummary.gtqCount, 
+            total: totalPurchases - (purchasesAmountSummary.originalUsdTotal * exchangeRate) 
           }
         }
       },
