@@ -58,19 +58,21 @@
             :value="optimization.selectedInvoices" 
             :paginator="optimization.selectedInvoices.length > 10"
             :rows="10"
-            :rowsPerPageOptions="[10, 20, 50]"
-            responsiveLayout="stack"
+            :rows-per-page-options="[10, 20, 50]"
+            responsive-layout="stack"
             breakpoint="768px"
-            stripedRows
-            :sortField="'taxAmount'"
-            :sortOrder="-1"
+            striped-rows
+            :sort-field="'taxAmount'"
+            :sort-order="-1"
           >
             <Column field="invoiceNumber" header="No. Factura" :sortable="true">
               <template #body="slotProps">
                 <div class="flex items-center space-x-2">
-                  <Badge :value="getDocumentTypeAbbrev(slotProps.data.documentType)" 
-                         :severity="getDocumentTypeSeverity(slotProps.data.documentType)" 
-                         size="small" />
+                  <Badge 
+                    :value="getDocumentTypeAbbrev(slotProps.data.documentType)" 
+                    :severity="getDocumentTypeSeverity(slotProps.data.documentType)" 
+                    size="small" 
+                  />
                   <span class="font-mono text-sm">{{ slotProps.data.invoiceNumber }}</span>
                 </div>
               </template>
@@ -108,16 +110,18 @@
             
             <Column field="currency" header="Moneda" :sortable="true">
               <template #body="slotProps">
-                <Badge :value="slotProps.data.currency" 
-                       :severity="slotProps.data.currency === 'USD' ? 'info' : 'success'" 
-                       size="small" />
+                <Badge 
+                  :value="slotProps.data.currency" 
+                  :severity="slotProps.data.currency === 'USD' ? 'info' : 'success'" 
+                  size="small" 
+                />
               </template>
             </Column>
             
             <Column header="Eficiencia">
               <template #body="slotProps">
                 <div class="text-center">
-                  <div class="text-sm font-medium">{{ calculateTaxRatio(slotProps.data) }}%</div>
+                  <div class="text-sm font-medium">{{ calculateTaxRatio(slotProps.data).toFixed(5) }}%</div>
                   <div class="text-xs text-surface-500 dark:text-surface-400">IVA/Total</div>
                 </div>
               </template>
@@ -237,7 +241,7 @@ const calculateTaxRatio = (invoice: typeof props.optimization.selectedInvoices[0
   if (invoice.totalAmount === 0) return 0
   const netAmount = invoice.totalAmount - invoice.taxAmount
   if (netAmount === 0) return 0
-  return (invoice.taxAmount / netAmount) * 100
+  return ((invoice.taxAmount / netAmount) * 100)
 }
 
 const formatCurrency = (amount: number): string => {
