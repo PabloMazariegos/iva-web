@@ -32,6 +32,9 @@ export interface OptimizedInvoice {
   currency: string
   documentType: DocumentType
   originalRow: ExcelRow
+  taxRatio: number
+  efficiencyScore: number
+  isValid: boolean
 }
 
 export interface InvoiceOptimizationResult {

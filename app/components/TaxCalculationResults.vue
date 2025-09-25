@@ -206,31 +206,6 @@ type Emits = {
 const props = defineProps<Props>()
 defineEmits<Emits>()
 
-// Computed properties to fix v-for with v-if linting issues
-const filteredSalesColumns = computed(() => {
-  if (!props.results?.detectedColumns.sales) return []
-  return Object.entries(props.results.detectedColumns.sales).filter(([_, column]) => column)
-})
-
-const filteredPurchasesColumns = computed(() => {
-  if (!props.results?.detectedColumns.purchases) return []
-  return Object.entries(props.results.detectedColumns.purchases).filter(([_, column]) => column)
-})
-
-// Enhanced computed properties for better visualization
-const taxSummary = computed(() => {
-  if (!props.results) return null
-  
-  return {
-    netSales: props.results.totalSales / 1.12,
-    netPurchases: props.results.totalPurchases / 1.12,
-    effectiveTaxRate: (props.results.salesTax / (props.results.totalSales / 1.12)) * 100,
-    creditUtilization: props.results.purchasesTax > 0 
-      ? (Math.min(props.results.purchasesTax, props.results.salesTax) / props.results.purchasesTax) * 100 
-      : 0
-  }
-})
-
 const statusInfo = computed(() => {
   if (!props.results) return null
   

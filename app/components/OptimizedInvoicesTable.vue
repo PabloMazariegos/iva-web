@@ -86,6 +86,30 @@
               </template>
             </Column>
             
+            <Column field="efficiencyScore" header="Puntuación" :sortable="true">
+              <template #body="slotProps">
+                <div class="flex items-center space-x-2">
+                  <ProgressBar
+                    :value="slotProps.data.efficiencyScore * 100"
+                    :show-value="false"
+                    class="w-12 h-2"
+                    :class="getEfficiencyColorClass(slotProps.data.efficiencyScore)"
+                  />
+                  <span class="text-xs font-medium">{{ (slotProps.data.efficiencyScore * 100).toFixed(0) }}%</span>
+                </div>
+              </template>
+            </Column>
+
+            <Column field="taxRatio" header="Ratio IVA" :sortable="true">
+              <template #body="slotProps">
+                <Badge
+                  :value="(slotProps.data.taxRatio * 100).toFixed(1) + '%'"
+                  :severity="getTaxRatioSeverity(slotProps.data.taxRatio)"
+                  size="small"
+                />
+              </template>
+            </Column>
+
             <Column field="totalAmount" header="Monto Total" :sortable="true">
               <template #body="slotProps">
                 <div class="text-right">
@@ -250,5 +274,22 @@ const formatCurrency = (amount: number): string => {
     currency: 'GTQ',
     minimumFractionDigits: 2
   }).format(amount)
+}
+
+const getEfficiencyColorClass = (score: number): string => {
+  if (score >= 0.8) return 'text-green-600'
+  if (score >= 0.6) return 'text-blue-600'
+  if (score >= 0.4) return 'text-yellow-600'
+  return 'text-red-600'
+}
+
+const getTaxRatioSeverity = (ratio: number): string => {
+  const optimalRatio = 0.12
+  const difference = Math.abs(ratio - optimalRatio)
+
+  if (difference <= 0.005) return 'success'
+  if (difference <= 0.01) return 'info'
+  if (difference <= 0.02) return 'warn'
+  return 'danger'
 }
 </script>

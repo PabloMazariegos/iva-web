@@ -1,11 +1,14 @@
-import type { 
-  ExcelRow, 
-  OptimizedInvoice, 
+import type {
+  ExcelRow,
+  OptimizedInvoice,
   InvoiceOptimizationResult,
   ColumnMapping,
   DocumentType
 } from '../types/tax.types'
 import { DocumentClassificationService } from './DocumentClassificationService'
+import { InvoiceValidationService } from './InvoiceValidationService'
+import { InvoiceScoreService } from './InvoiceScoreService'
+import { OptimizedInvoiceSelectionService } from './OptimizedInvoiceSelectionService'
 
 export const InvoiceOptimizationService = {
   optimizeInvoiceSelection(
@@ -20,7 +23,7 @@ export const InvoiceOptimizationService = {
       exchangeRate
     )
 
-    const selectedInvoices = this.findOptimalCombination(
+    const selectedInvoices = OptimizedInvoiceSelectionService.selectOptimalInvoices(
       optimizedInvoices,
       salesTaxAmount
     )
@@ -54,97 +57,40 @@ export const InvoiceOptimizationService = {
     const invoices: OptimizedInvoice[] = []
 
     for (const row of purchasesData) {
-      const taxAmount = this.parseNumericValue(row[columnMappings.tax || ''])
-      
-      if (taxAmount <= 0) continue
+      if (!InvoiceValidationService.isValidInvoice(row)) continue
 
+      const taxAmount = this.parseNumericValue(row[columnMappings.tax || ''])
       const totalAmount = this.parseNumericValue(row[columnMappings.total || ''])
       const currency = String(row[columnMappings.currency || 'GTQ']).toUpperCase()
-      
+
       const convertedTaxAmount = currency === 'USD' ? taxAmount * exchangeRate : taxAmount
       const convertedTotalAmount = currency === 'USD' ? totalAmount * exchangeRate : totalAmount
 
       const invoiceNumber = String(row[columnMappings.invoiceNumber || ''] || 'N/A')
       const taxpayerName = String(row[columnMappings.taxpayerName || ''] || 'N/A')
-      
       const documentType = DocumentClassificationService.classifyDocument(row)
+      const taxRatio = convertedTotalAmount > 0 ? convertedTaxAmount / convertedTotalAmount : 0
 
-      invoices.push({
+      const optimizedInvoice: OptimizedInvoice = {
         invoiceNumber,
         taxpayerName,
         totalAmount: convertedTotalAmount,
         taxAmount: convertedTaxAmount,
         currency: currency === 'USD' ? 'USD' : 'GTQ',
         documentType,
-        originalRow: row
-      })
+        originalRow: row,
+        taxRatio,
+        efficiencyScore: 0,
+        isValid: true
+      }
+
+      optimizedInvoice.efficiencyScore = InvoiceScoreService.calculateEfficiencyScore(optimizedInvoice)
+      invoices.push(optimizedInvoice)
     }
 
-    return invoices.sort((a, b) => b.taxAmount - a.taxAmount)
+    return invoices
   },
 
-  findOptimalCombination(
-    invoices: OptimizedInvoice[],
-    targetAmount: number
-  ): OptimizedInvoice[] {
-    if (invoices.length === 0 || targetAmount <= 0) return []
-
-    const n = invoices.length
-    const target = Math.floor(targetAmount * 100)
-    const dp: boolean[][] = Array(n + 1).fill(null).map(() => Array(target + 1).fill(false))
-    const parent: number[][] = Array(n + 1).fill(null).map(() => Array(target + 1).fill(-1))
-
-    dp[0][0] = true
-
-    for (let i = 1; i <= n; i++) {
-      const invoice = invoices[i - 1]
-      const weight = Math.floor(invoice.taxAmount * 100)
-
-      for (let w = 0; w <= target; w++) {
-        dp[i][w] = dp[i - 1][w]
-        if (dp[i][w]) {
-          parent[i][w] = 0
-        }
-
-        if (weight <= w && dp[i - 1][w - weight]) {
-          if (!dp[i][w] || this.shouldPreferThisCombination(invoice)) {
-            dp[i][w] = true
-            parent[i][w] = 1
-          }
-        }
-      }
-    }
-
-    let bestAmount = 0
-    for (let w = target; w >= 0; w--) {
-      if (dp[n][w]) {
-        bestAmount = w
-        break
-      }
-    }
-
-    const selectedInvoices: OptimizedInvoice[] = []
-    let currentInvoice = n
-    let currentWeight = bestAmount
-
-    while (currentInvoice > 0 && currentWeight > 0) {
-      if (parent[currentInvoice][currentWeight] === 1) {
-        selectedInvoices.push(invoices[currentInvoice - 1])
-        const invoiceWeight = Math.floor(invoices[currentInvoice - 1].taxAmount * 100)
-        currentWeight -= invoiceWeight
-      }
-      currentInvoice--
-    }
-
-    return selectedInvoices.sort((a, b) => b.taxAmount - a.taxAmount)
-  },
-
-  shouldPreferThisCombination(currentInvoice: OptimizedInvoice): boolean {
-    if (currentInvoice.documentType === 'FACT') return true
-    if (currentInvoice.documentType === 'NCRE') return false
-    
-    return Math.random() > 0.5
-  },
 
   getInvoicesByDocumentType(
     optimizationResult: InvoiceOptimizationResult
