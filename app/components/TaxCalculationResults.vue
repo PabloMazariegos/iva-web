@@ -33,6 +33,9 @@
 
     <!-- Results -->
     <div v-else-if="results" class="space-y-6">
+      <!-- SAT Form Summary - Priority Display -->
+      <SATFormSummary :summary="results" />
+
       <!-- Exchange Rate Info -->
       <Card class="mb-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800">
         <template #content>
@@ -189,6 +192,7 @@
 
 <script setup lang="ts">
 import type { TaxCalculationResult } from '~~/server/types/tax.types'
+import SATFormSummary from './SATFormSummary.vue'
 import DocumentTypeBreakdown from './DocumentTypeBreakdown.vue'
 import OptimizedInvoicesTable from './OptimizedInvoicesTable.vue'
 
